@@ -10,7 +10,15 @@
   - [x] Header & Category Navigation.
   - [x] Menu Grid & Product Cards.
   - [x] Cart Summary logic.
-- [x] Verification & Polish
-  - [x] Add Premium Animations (CSS).
-  - [x] Ensure Mobile Responsiveness.
-  - [x] Verify Checkout Flow.
+- [x] Backend & Routing (Phase 2)
+  - [x] Add `react-router-dom` and `@supabase/supabase-js`.
+  - [x] Setup Supabase client and `orders` table.
+  - [x] Implement Route for `/` and `/admin`.
+  - [x] Update Checkout flow to insert order to Supabase.
+  - [x] Implement Admin Dashboard with real-time fetching and status updates.
+- [ ] Verification & Polish (Phase 2)
+  - [ ] Verify Cash Checkout logic.
+  - [ ] Verify Admin status updates.
+- [ ] Deployment
+  - [ ] Connect GitHub repository to Vercel.
+  - [ ] Verify live URL.

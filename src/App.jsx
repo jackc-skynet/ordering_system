@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { ShoppingCart, Plus, Minus, Send, Star, Clock } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Send, CheckCircle } from 'lucide-react';
 import { MENU_DATA, CATEGORIES } from './data/menu';
+import { supabase } from './lib/supabase';
 
 function App() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
-    const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+    const [orderResult, setOrderResult] = useState(null); // { success: true, orderId: '...' }
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const filteredMenu = activeCategory === 'All'
         ? MENU_DATA
@@ -33,15 +35,56 @@ function App() {
 
     const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
-    if (isOrderPlaced) {
+    const handleCheckout = async () => {
+        setIsSubmitting(true);
+        try {
+            const { data, error } = await supabase
+                .from('orders')
+                .insert([
+                    { items: cart, total_price: totalPrice, status: 'pending' }
+                ])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            setOrderResult({
+                success: true,
+                orderId: data.id.split('-')[0].toUpperCase() // Display a short 8-char ID
+            });
+        } catch (error) {
+            console.error("Error creating order:", error);
+            // Show the exact error message from Supabase to help debugging
+            alert(`結帳失敗: ${error.message || JSON.stringify(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (orderResult?.success) {
         return (
             <div className="premium-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
                 <div className="glass" style={{ padding: '3rem', maxWidth: '500px' }}>
-                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
-                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>訂單發送成功！</h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>主廚已收到您的點單，正在火速製作中...</p>
-                    <button className="btn-primary" onClick={() => { setCart([]); setIsOrderPlaced(false); }}>
-                        回到菜單
+                    <div style={{ marginBottom: '1.5rem', color: 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
+                        <CheckCircle size={80} />
+                    </div>
+                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>點單成功送出！</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>請前往櫃檯使用「現金結帳」並告知您的取餐號碼：</p>
+                    <div style={{
+                        fontSize: '3rem',
+                        fontWeight: '700',
+                        fontFamily: 'monospace',
+                        color: 'var(--primary)',
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        marginBottom: '2rem',
+                        letterSpacing: '4px'
+                    }}>
+                        {orderResult.orderId}
+                    </div>
+                    <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setCart([]); setOrderResult(null); }}>
+                        回到菜單，繼續點餐
                     </button>
                 </div>
             </div>
@@ -130,10 +173,11 @@ function App() {
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button
                             className="btn-primary"
-                            style={{ flex: 1, justifyContent: 'center' }}
-                            onClick={() => setIsOrderPlaced(true)}
+                            style={{ flex: 1, justifyContent: 'center', opacity: isSubmitting ? 0.7 : 1 }}
+                            onClick={handleCheckout}
+                            disabled={isSubmitting}
                         >
-                            <Send size={20} /> 立即訂購
+                            <Send size={20} /> {isSubmitting ? '處理中...' : '送出訂單 (現金結帳)'}
                         </button>
                     </div>
                 </div>
