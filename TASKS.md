@@ -16,9 +16,13 @@
   - [x] Implement Route for `/` and `/admin`.
   - [x] Update Checkout flow to insert order to Supabase.
   - [x] Implement Admin Dashboard with real-time fetching and status updates.
-- [ ] Verification & Polish (Phase 2)
-  - [ ] Verify Cash Checkout logic.
-  - [ ] Verify Admin status updates.
-- [ ] Deployment
-  - [ ] Connect GitHub repository to Vercel.
-  - [ ] Verify live URL.
+- [x] Verification & Polish (Phase 2)
+  - [x] Verify Cash Checkout logic.
+  - [x] Verify Admin status updates.
+- [x] Deployment
+  - [x] Connect GitHub repository to Vercel.
+  - [x] Verify live URL: ordering-system-nyjmc3tee-jackc-skynets-projects.vercel.app
+- [ ] Phase 3: Jira CI/CD Workflow Integration
+  - [ ] Connect GitHub repository to Jira Software.
+  - [ ] Map existing items in `TASKS.md` to Jira ticket IDs (e.g., ORDER-1).
+  - [ ] Start using Jira Ticket IDs in `git commit` messages (e.g., `git commit -m "Fixes ORDER-1"`).
