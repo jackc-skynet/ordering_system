@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { ShoppingCart, Plus, Minus, Send, CheckCircle } from 'lucide-react';
 import { MENU_DATA, CATEGORIES } from './data/menu';
 import { supabase } from './lib/supabase';
+import IngredientBuilder from './IngredientBuilder';
 
 function App() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
     const [orderResult, setOrderResult] = useState(null); // { success: true, orderId: '...' }
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const EXTENDED_CATEGORIES = [...CATEGORIES, '創意料理'];
 
     const filteredMenu = activeCategory === 'All'
         ? MENU_DATA
@@ -101,7 +104,7 @@ function App() {
 
             {/* Category Tabs */}
             <div style={{ display: 'flex', gap: '1rem', overflowX: 'auto', paddingBottom: '1rem', marginBottom: '2rem' }}>
-                {CATEGORIES.map(cat => (
+                {EXTENDED_CATEGORIES.map(cat => (
                     <button
                         key={cat}
                         onClick={() => setActiveCategory(cat)}
@@ -119,35 +122,40 @@ function App() {
                         {cat === 'All' ? '全部餐點' :
                             cat === 'Main' ? '主食' :
                                 cat === 'Appetizer' ? '開胃菜' :
-                                    cat === 'Drink' ? '飲品' : '甜點'}
+                                    cat === 'Drink' ? '飲品' :
+                                        cat === '創意料理' ? '🧑‍🍳 創意料理' : '甜點'}
                     </button>
                 ))}
             </div>
 
-            {/* Menu Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem', marginBottom: '8rem' }}>
-                {filteredMenu.map(item => (
-                    <div key={item.id} className="glass" style={{ overflow: 'hidden', transition: 'transform 0.3s ease' }}>
-                        <div style={{ height: '180px', overflow: 'hidden' }}>
-                            <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                        <div style={{ padding: '1.5rem' }}>
-                            <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{item.name}</h3>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem', minHeight: '3rem' }}>{item.description}</p>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary)' }}>${item.price}</span>
-                                <button
-                                    className="btn-primary"
-                                    style={{ padding: '8px 16px', borderRadius: '8px' }}
-                                    onClick={() => addToCart(item)}
-                                >
-                                    <Plus size={20} /> 加入
-                                </button>
+            {/* Menu Grid / Builder */}
+            {activeCategory === '創意料理' ? (
+                <IngredientBuilder onAddToCart={addToCart} />
+            ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '2rem', marginBottom: '8rem' }}>
+                    {filteredMenu.map(item => (
+                        <div key={item.id} className="glass" style={{ overflow: 'hidden', transition: 'transform 0.3s ease' }}>
+                            <div style={{ height: '180px', overflow: 'hidden' }}>
+                                <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            </div>
+                            <div style={{ padding: '1.5rem' }}>
+                                <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem' }}>{item.name}</h3>
+                                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem', minHeight: '3rem' }}>{item.description}</p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.5rem', fontWeight: '700', color: 'var(--primary)' }}>${item.price}</span>
+                                    <button
+                                        className="btn-primary"
+                                        style={{ padding: '8px 16px', borderRadius: '8px' }}
+                                        onClick={() => addToCart(item)}
+                                    >
+                                        <Plus size={20} /> 加入
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
+            )}
 
             {/* Sticky Cart Summary */}
             {cart.length > 0 && (

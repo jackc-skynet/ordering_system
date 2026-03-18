@@ -22,7 +22,8 @@
 - [x] Deployment
   - [x] Connect GitHub repository to Vercel.
   - [x] Verify live URL: ordering-system-nyjmc3tee-jackc-skynets-projects.vercel.app
-- [ ] Phase 3: Jira CI/CD Workflow Integration
-  - [ ] Connect GitHub repository to Jira Software.
-  - [ ] Map existing items in `TASKS.md` to Jira ticket IDs (e.g., ORDER-1).
-  - [ ] Start using Jira Ticket IDs in `git commit` messages (e.g., `git commit -m "Fixes ORDER-1"`).
+- [ ] Phase 3: Creative Cuisine Builder (創意料理建構器)
+  - [x] Define 50 ingredients in `src/data/ingredients.js`.
+  - [x] Create `IngredientBuilder.jsx` component.
+  - [x] Implement name and image generation logic.
+  - [x] Integrate into `App.jsx` under the new category.
