@@ -50,16 +50,23 @@ function IngredientBuilder({ onAddToCart }) {
     setTimeout(() => {
       const dishName = generateDishName(selectedIngredients);
       
-      // Map up to 3 main ingredients to English keywords
-      const engKeywords = selectedIngredients
-        .slice(0,3)
-        .map(i => engDict[i.name] || '')
-        .filter(k => k !== '')
-        .map(k => k.replace(/ /g, '')) // Remove spaces for loremflickr
-        .join(',');
-        
-      // Use LoremFlickr which respects keywords better than Unsplash
-      const imageUrl = `https://loremflickr.com/800/600/${encodeURIComponent(engKeywords)},food/all`;
+      // Since public free APIs (Unsplash Source, Pollinations, LoremFlickr) are currently super flaky or returning garbage,
+      // we implement a smart categorizer that maps the primary ingredients to curated, guaranteed high-quality premium images.
+      let imageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800"; // Default gourmet
+      
+      const names = selectedIngredients.map(i => i.name);
+      
+      if (names.some(n => n.includes('龍蝦') || n.includes('草蝦') || n.includes('干貝') || n.includes('鮮蛤蜊'))) {
+         imageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800"; // Beautiful seafood/shrimp dish
+      } else if (names.some(n => n.includes('牛排') || n.includes('羊排') || n.includes('牛肉排'))) {
+         imageUrl = "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800"; // Premium steak
+      } else if (names.some(n => n.includes('雞腿肉') || n.includes('鴨胸') || n.includes('豬肉'))) {
+         imageUrl = "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&q=80&w=800"; // Roasted meat/chicken
+      } else if (names.some(n => n.includes('義大利麵') || n.includes('披薩') || n.includes('烏龍麵'))) {
+         imageUrl = "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&q=80&w=800"; // Gourmet pasta
+      } else if (names.some(n => n.includes('菠菜') || n.includes('沙拉') || n.includes('甘藍'))) {
+         imageUrl = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800"; // Healthy bowl
+      }
 
       setGeneratedDish({
         id: `custom_${Date.now()}`,
