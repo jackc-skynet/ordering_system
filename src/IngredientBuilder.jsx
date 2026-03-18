@@ -55,11 +55,11 @@ function IngredientBuilder({ onAddToCart }) {
         .slice(0,3)
         .map(i => engDict[i.name] || '')
         .filter(k => k !== '')
-        .join(' and ');
+        .map(k => k.replace(/ /g, '')) // Remove spaces for loremflickr
+        .join(',');
         
-      // Use Pollinations AI to generate the exact image on the fly!
-      const prompt = `A delicious highly appetizing plate of ${engKeywords} meal, restaurant style, dark moody background, high resolution food photography`;
-      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true`;
+      // Use LoremFlickr which respects keywords better than Unsplash
+      const imageUrl = `https://loremflickr.com/800/600/${encodeURIComponent(engKeywords)},food/all`;
 
       setGeneratedDish({
         id: `custom_${Date.now()}`,
