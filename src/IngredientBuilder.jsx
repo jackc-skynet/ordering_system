@@ -52,18 +52,21 @@ function IngredientBuilder({ onAddToCart }) {
       
       const names = selectedIngredients.map(i => i.name);
       
-      let imageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800"; // Default gourmet
-      if (names.some(n => n.includes('龍蝦') || n.includes('草蝦') || n.includes('干貝') || n.includes('鮮蛤蜊'))) {
-         imageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800"; // Beautiful seafood/shrimp dish
-      } else if (names.some(n => n.includes('牛排') || n.includes('羊排') || n.includes('牛肉排'))) {
-         imageUrl = "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&q=80&w=800"; // Premium steak
-      } else if (names.some(n => n.includes('雞腿肉') || n.includes('鴨胸') || n.includes('豬肉'))) {
-         imageUrl = "https://images.unsplash.com/photo-1604908176997-125f25cc6f3d?auto=format&fit=crop&q=80&w=800"; // Roasted meat/chicken
-      } else if (names.some(n => n.includes('義大利麵') || n.includes('披薩') || n.includes('烏龍麵'))) {
-         imageUrl = "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&q=80&w=800"; // Gourmet pasta
-      } else if (names.some(n => n.includes('菠菜') || n.includes('沙拉') || n.includes('甘藍'))) {
-         imageUrl = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800"; // Healthy bowl
-      }
+      // We will ask Pollinations AI to generate the EXACT image of the combined ingredients
+      const engKeywords = selectedIngredients
+        .slice(0,3)
+        .map(i => engDict[i.name] || '')
+        .filter(k => k !== '')
+        .join(' and ');
+        
+      // Use Pollinations AI generative endpoint. 
+      // We add a random seed parameter so it doesn't cache previous failed 500 errors.
+      const prompt = `A delicious highly appetizing plate of ${engKeywords} meal, studio lighting, restaurant style, dark moody background, high resolution food photography`;
+      let imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true&seed=${Date.now()}`;
+      
+      // Fallback in case Pollinations is completely down, we'll use a beautiful culinary background 
+      // and overlay the text via CSS in the UI.
+      const fallbackUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800";
 
       // Generate funny/dynamic cooking method
       const meats = selectedIngredients.filter(i => i.category === 'meat' || i.category === 'seafood');
@@ -83,6 +86,8 @@ function IngredientBuilder({ onAddToCart }) {
         name: dishName,
         price: estimatedPrice,
         image: imageUrl,
+        fallbackImage: fallbackUrl,
+        engKeywords: engKeywords.toUpperCase(),
         description: `包含: ${selectedIngredients.map(i => i.name).join('、')}`,
         recipe: method,
         category: '創意料理'
@@ -220,10 +225,29 @@ function IngredientBuilder({ onAddToCart }) {
                         src={generatedDish.image} 
                         alt={generatedDish.name}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        onError={(e) => { // Fallback if unsplash fails
-                            e.target.src = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800";
+                        onError={(e) => { // Fallback if AI generator fails
+                            e.target.src = generatedDish.fallbackImage;
                         }}
                     />
+                    {/* Generative Text Overlay to guarantee clarity */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'rgba(0,0,0,0.6)',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        backdropFilter: 'blur(4px)',
+                        textAlign: 'center',
+                        pointerEvents: 'none'
+                    }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 'bold', letterSpacing: '2px', color: '#ff6b35' }}>
+                            {generatedDish.engKeywords}
+                        </span>
+                    </div>
+
                     <div style={{ 
                         position: 'absolute', 
                         bottom: 0, 
