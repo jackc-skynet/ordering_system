@@ -50,12 +50,9 @@ function IngredientBuilder({ onAddToCart }) {
     setTimeout(() => {
       const dishName = generateDishName(selectedIngredients);
       
-      // Since public free APIs (Unsplash Source, Pollinations, LoremFlickr) are currently super flaky or returning garbage,
-      // we implement a smart categorizer that maps the primary ingredients to curated, guaranteed high-quality premium images.
-      let imageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800"; // Default gourmet
-      
       const names = selectedIngredients.map(i => i.name);
       
+      let imageUrl = "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800"; // Default gourmet
       if (names.some(n => n.includes('龍蝦') || n.includes('草蝦') || n.includes('干貝') || n.includes('鮮蛤蜊'))) {
          imageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800"; // Beautiful seafood/shrimp dish
       } else if (names.some(n => n.includes('牛排') || n.includes('羊排') || n.includes('牛肉排'))) {
@@ -68,12 +65,26 @@ function IngredientBuilder({ onAddToCart }) {
          imageUrl = "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&q=80&w=800"; // Healthy bowl
       }
 
+      // Generate funny/dynamic cooking method
+      const meats = selectedIngredients.filter(i => i.category === 'meat' || i.category === 'seafood');
+      const veg = selectedIngredients.filter(i => i.category === 'vegetables');
+      const spices = selectedIngredients.filter(i => i.category === 'spices');
+      const carbs = selectedIngredients.filter(i => i.category === 'carbs');
+
+      let method = "主廚特製神秘工法：\n";
+      if (spices.length > 0) method += `1. 先以頂級初榨橄欖油小火煸香【${spices.map(s=>s.name).join('、')}】，釋放天然香氣。\n`;
+      if (meats.length > 0) method += `2. 加入【${meats.map(m=>m.name).join('、')}】以大火快速爆炒封住肉汁，再轉中火慢煎至外酥內嫩。\n`;
+      if (veg.length > 0) method += `3. 放入【${veg.map(v=>v.name).join('、')}】拌炒，保留蔬菜清脆與鮮甜。\n`;
+      if (carbs.length > 0) method += `4. 最後與【${carbs.map(c=>c.name).join('、')}】完美燴合，大火收汁裝盤。\n`;
+      if (spices.some(s => s.name.includes('松露') || s.name.includes('起司'))) method += `5. 出餐前刨上大量濃郁起司或滴上松露油，完成米其林級的奢華之作。`;
+
       setGeneratedDish({
         id: `custom_${Date.now()}`,
         name: dishName,
         price: estimatedPrice,
         image: imageUrl,
-        description: `包含: ${selectedIngredients.map(i => i.name).join(', ')}`,
+        description: `包含: ${selectedIngredients.map(i => i.name).join('、')}`,
+        recipe: method,
         category: '創意料理'
       });
       setIsGenerating(false);
@@ -225,9 +236,28 @@ function IngredientBuilder({ onAddToCart }) {
                     </div>
                 </div>
                 
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', textAlign: 'center', maxWidth: '500px' }}>
-                    {generatedDish.description}
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', textAlign: 'center', maxWidth: '500px', fontWeight: 'bold' }}>
+                    嚴選食材：{generatedDish.description.replace('包含: ', '')}
                 </p>
+
+                <div className="glass" style={{ 
+                    padding: '1.5rem', 
+                    marginBottom: '2rem', 
+                    maxWidth: '500px', 
+                    width: '100%', 
+                    textAlign: 'left',
+                    backgroundColor: 'rgba(255,255,255,0.02)'
+                }}>
+                    <h4 style={{ color: 'var(--primary)', marginBottom: '0.5rem', fontSize: '1.1rem' }}>👨‍🍳 料理作法與工序：</h4>
+                    <p style={{ 
+                        color: 'var(--text-secondary)', 
+                        fontSize: '0.95rem', 
+                        lineHeight: '1.6', 
+                        whiteSpace: 'pre-line' 
+                    }}>
+                        {generatedDish.recipe}
+                    </p>
+                </div>
 
                 <button 
                     className="btn-primary" 
