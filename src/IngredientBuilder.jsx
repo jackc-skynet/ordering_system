@@ -47,17 +47,19 @@ function IngredientBuilder({ onAddToCart }) {
       '手工義大利麵': 'pasta', '越光米': 'rice', '酸種麵包': 'bread', '烏龍麵': 'udon', '披薩薄餅': 'pizza', '馬鈴薯泥': 'mashed potato', '藜麥': 'quinoa', '酥炸薯條': 'fries', '台南米粉': 'rice noodles', '印度烤餅': 'naan'
     };
 
-    // Simulate AI thinking time
     setTimeout(() => {
       const dishName = generateDishName(selectedIngredients);
       
-      // Map up to 2 main ingredients to English keywords
+      // Map up to 3 main ingredients to English keywords
       const engKeywords = selectedIngredients
-        .slice(0,2)
-        .map(i => engDict[i.name] || 'food')
-        .join(',');
+        .slice(0,3)
+        .map(i => engDict[i.name] || '')
+        .filter(k => k !== '')
+        .join(' and ');
         
-      const imageUrl = `https://source.unsplash.com/featured/800x600/?${engKeywords},food,meal`;
+      // Use Pollinations AI to generate the exact image on the fly!
+      const prompt = `A delicious highly appetizing plate of ${engKeywords} meal, restaurant style, dark moody background, high resolution food photography`;
+      const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=800&height=600&nologo=true`;
 
       setGeneratedDish({
         id: `custom_${Date.now()}`,
