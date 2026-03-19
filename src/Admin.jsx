@@ -78,17 +78,19 @@ function Admin() {
   const getStatusColor = (status) => {
     switch (status) {
       case 'pending': return '#ff6b35';
-      case 'cooking': return '#f7b733';
-      case 'completed': return '#4ade80';
+      case 'preparing': return '#f7b733';
+      case 'ready': return '#4ade80';
+      case 'completed': return 'var(--text-secondary)';
       default: return 'var(--text-secondary)';
     }
   };
 
   const getStatusText = (status) => {
     switch (status) {
-      case 'pending': return '待處理 (未付款)';
-      case 'cooking': return '製作中 (已付款)';
-      case 'completed': return '已完成';
+      case 'pending': return '待處理';
+      case 'preparing': return '製作中';
+      case 'ready': return '可取餐';
+      case 'completed': return '已結案';
       default: return status;
     }
   };
@@ -110,12 +112,16 @@ function Admin() {
                 <span style={{ fontSize: '0.9rem' }}>待處理</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: getStatusColor('cooking') }}></span>
+                <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: getStatusColor('preparing') }}></span>
                 <span style={{ fontSize: '0.9rem' }}>製作中</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: getStatusColor('ready') }}></span>
+                <span style={{ fontSize: '0.9rem' }}>請取餐</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ width: 12, height: 12, borderRadius: '50%', backgroundColor: getStatusColor('completed') }}></span>
-                <span style={{ fontSize: '0.9rem' }}>已完成</span>
+                <span style={{ fontSize: '0.9rem' }}>已結案</span>
             </div>
         </div>
       </header>
@@ -164,17 +170,22 @@ function Admin() {
 
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 {order.status === 'pending' && (
-                  <button className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#f7b733' }} onClick={() => updateStatus(order.id, 'cooking')}>
-                    <ChefHat size={18} /> 開始製作 / 已付款
+                  <button className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#f7b733' }} onClick={() => updateStatus(order.id, 'preparing')}>
+                    <ChefHat size={18} /> 開始製作
                   </button>
                 )}
-                {order.status === 'cooking' && (
-                   <button className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#4ade80' }} onClick={() => updateStatus(order.id, 'completed')}>
-                    <CheckCircle size={18} /> 完成訂單
+                {order.status === 'preparing' && (
+                   <button className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: '#4ade80' }} onClick={() => updateStatus(order.id, 'ready')}>
+                    <CheckCircle size={18} /> 製作完成 (通知取餐)
+                 </button>
+                )}
+                {order.status === 'ready' && (
+                   <button className="btn-primary" style={{ flex: 1, justifyContent: 'center', background: 'var(--text-secondary)' }} onClick={() => updateStatus(order.id, 'completed')}>
+                    <CheckCircle size={18} /> 客戶已取餐 (結案)
                  </button>
                 )}
                  {order.status === 'completed' && (
-                   <div style={{ flex: 1, textAlign: 'center', padding: '12px', color: '#4ade80', fontWeight: '600', backgroundColor: 'rgba(74, 222, 128, 0.1)', borderRadius: '12px' }}>
+                   <div style={{ flex: 1, textAlign: 'center', padding: '12px', color: 'var(--text-secondary)', fontWeight: '600', backgroundColor: 'rgba(255, 255, 255, 0.05)', borderRadius: '12px' }}>
                      訂單已完成結案
                    </div>
                 )}
