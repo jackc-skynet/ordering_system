@@ -4,7 +4,7 @@ import { MENU_DATA, CATEGORIES } from './data/menu';
 import { supabase } from './lib/supabase';
 import IngredientBuilder from './IngredientBuilder';
 
-const OrderTrackingView = ({ order, onBackToMenu }) => {
+const OrderTrackingView = ({ order, onBackToMenu, onClearOrder }) => {
     // Safety check for order object
     if (!order || !order.id) {
         return (
@@ -48,12 +48,12 @@ const OrderTrackingView = ({ order, onBackToMenu }) => {
     return (
         <div className="premium-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
             <div className="glass" style={{ padding: '3rem', maxWidth: '600px', width: '90%', margin: '0 auto' }}>
-                <div style={{ marginBottom: '1.5rem', color: isCompleted ? 'var(--text-secondary)' : 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ marginBottom: '1.5rem', color: isCompleted ? '#4ade80' : 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
                     {isCompleted ? <CheckCircle size={80} /> : <Clock size={80} className={status === 'preparing' ? 'spin' : ''} />}
                 </div>
                 
                 <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-                    {isCompleted ? '餐點已領取' : '主廚正在為您服務'}
+                    {isCompleted ? '餐點已領取！感謝光臨' : '主廚正在為您服務'}
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
                     取餐號碼：<span style={{ color: 'var(--primary)', fontWeight: 'bold', fontFamily: 'monospace' }}>{order.displayId}</span>
@@ -103,18 +103,86 @@ const OrderTrackingView = ({ order, onBackToMenu }) => {
                     </div>
                 )}
 
-                <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={onBackToMenu}>
-                    {isCompleted ? '回到首頁' : '返回菜單 (不影響訂單狀態)'}
-                </button>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <button className="glass" style={{ flex: 1, justifyContent: 'center' }} onClick={onBackToMenu}>
+                        先看菜單
+                    </button>
+                    {isCompleted && (
+                        <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={onClearOrder}>
+                            結束並清除
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
+    );
+};
+
+const FloatingStatusButton = ({ order, onClick }) => {
+    const [status, setStatus] = useState(order.initialStatus || 'pending');
+
+    useEffect(() => {
+        const channel = supabase
+            .channel(`order-status-fab-${order.id}`)
+            .on('postgres_changes', 
+                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` }, 
+                payload => {
+                    if (payload.new && payload.new.status) {
+                        setStatus(payload.new.status);
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [order.id]);
+
+    if (status === 'completed') return null;
+
+    const getStatusInfo = () => {
+        switch (status) {
+            case 'preparing': return { color: '#f7b733', text: '製作中' };
+            case 'ready': return { color: '#4ade80', text: '請取餐！' };
+            default: return { color: '#ff6b35', text: '等候中' };
+        }
+    };
+
+    const info = getStatusInfo();
+
+    return (
+        <button 
+            className="glass" 
+            onClick={onClick}
+            style={{
+                position: 'fixed',
+                bottom: '160px',
+                right: '25px',
+                padding: '0.8rem 1.2rem',
+                borderRadius: '50px',
+                border: `1px solid ${info.color}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.8rem',
+                zIndex: 1000,
+                boxShadow: `0 4px 15px ${info.color}44`,
+                cursor: 'pointer',
+                animation: status === 'ready' ? 'pulse 2s infinite' : 'none'
+            }}
+        >
+            <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: info.color }}></div>
+            <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{info.text} - {order.displayId}</span>
+            <ChevronRight size={16} />
+        </button>
     );
 };
 
 function App() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
-    const [orderResult, setOrderResult] = useState(null); // { success: true, orderId: '...' }
+    const [orderResult, setOrderResult] = useState(null);
+    const [showTracking, setShowTracking] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const EXTENDED_CATEGORIES = [...CATEGORIES, '創意料理'];
@@ -164,6 +232,7 @@ function App() {
                 displayId: (data.id || "").split('-')[0].toUpperCase(),
                 initialStatus: data.status || 'pending'
             });
+            setShowTracking(true);
         } catch (error) {
             console.error("Error creating order:", error);
             // Show the exact error message from Supabase to help debugging
@@ -173,12 +242,19 @@ function App() {
         }
     };
 
-    if (orderResult?.success) {
-        return <OrderTrackingView order={orderResult} onBackToMenu={() => { setCart([]); setOrderResult(null); }} />;
+    if (showTracking && orderResult?.success) {
+        return <OrderTrackingView 
+            order={orderResult} 
+            onBackToMenu={() => setShowTracking(false)} 
+            onClearOrder={() => { setCart([]); setOrderResult(null); setShowTracking(false); }}
+        />;
     }
 
     return (
-        <div className="premium-container">
+        <div className="premium-container" style={{ position: 'relative' }}>
+            {orderResult && !showTracking && (
+                <FloatingStatusButton order={orderResult} onClick={() => setShowTracking(true)} />
+            )}
             {/* Header */}
             <header style={{ marginBottom: '3rem' }}>
                 <h1 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>點菜系統</h1>
