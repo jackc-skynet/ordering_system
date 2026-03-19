@@ -17,11 +17,11 @@ export const MENU_DATA = [
     },
     {
         id: 3,
-        name: "酥炸金黃洋蔥圈",
-        description: "外酥內軟，搭配獨家酸辣醬汁。",
-        price: 120,
+        name: "松露起司薯條",
+        description: "頂級黑松露油均勻拌炒現炸薯條，撒上濃香帕瑪森起司。",
+        price: 150,
         category: "Appetizer",
-        image: "https://images.unsplash.com/photo-1639024471283-035188801981?auto=format&fit=crop&w=400&q=80"
+        image: "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=400&q=80"
     },
     {
         id: 4,

@@ -180,6 +180,13 @@ function App() {
 
                     <div style={{ display: 'flex', gap: '1rem' }}>
                         <button
+                            className="glass"
+                            style={{ padding: '0 1rem', border: '1px solid var(--glass-border)', color: '#ff4d4d' }}
+                            onClick={() => { if(window.confirm("確定要清空購物車嗎？")) setCart([]); }}
+                        >
+                            清空
+                        </button>
+                        <button
                             className="btn-primary"
                             style={{ flex: 1, justifyContent: 'center', opacity: isSubmitting ? 0.7 : 1 }}
                             onClick={handleCheckout}
