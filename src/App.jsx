@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ShoppingCart, Plus, Minus, Send, CheckCircle, Clock, ChefHat, Trash2, Utensils, Star, Info, ChevronRight, Filter } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, Send, CheckCircle, Clock, ChefHat, Trash2, Utensils, Star, Info, ChevronRight, Filter, MapPin, ArrowRight, Search } from 'lucide-react';
 import { MENU_DATA, CATEGORIES } from './data/menu';
 import { supabase } from './lib/supabase';
 import IngredientBuilder from './IngredientBuilder';
+import ShopLocation from './ShopLocation';
 
 const OrderTrackingView = ({ order, activeOrders, onSwitchOrder, onBackToMenu, onClearOrder }) => {
     // Safety check for order object
@@ -183,6 +184,7 @@ function App() {
     const [cart, setCart] = useState([]);
     const [activeOrders, setActiveOrders] = useState([]); // Array of { id, displayId, status }
     const [viewingOrderId, setViewingOrderId] = useState(null);
+    const [showLocation, setShowLocation] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // CENTRALIZED REAL-TIME LISTENER
@@ -287,6 +289,11 @@ function App() {
         />;
     }
 
+    // 3. Shop Location View
+    if (showLocation) {
+        return <ShopLocation onBack={() => setShowLocation(false)} />;
+    }
+
     return (
         <div className="premium-container" style={{ position: 'relative' }}>
             {activeOrders.length > 0 && !viewingOrderId && (
@@ -294,8 +301,31 @@ function App() {
             )}
             {/* Header */}
             <header style={{ marginBottom: '3rem' }}>
-                <h1 style={{ fontSize: '2.5rem', fontWeight: '700', marginBottom: '0.5rem' }}>點菜系統</h1>
-                <p style={{ color: 'var(--text-secondary)' }}>探索美味與質感交織的用餐時光</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
+                        <div>
+                            <h1 style={{ fontSize: '2.5rem', fontWeight: '800', marginBottom: '0.5rem', background: 'linear-gradient(to right, #fff, #888)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                                美味快速點
+                            </h1>
+                            <p style={{ color: 'var(--text-secondary)', fontSize: '1.1rem' }}>探索頂級食材與創意料理</p>
+                        </div>
+                        <button 
+                            className="glass" 
+                            onClick={() => setShowLocation(true)}
+                            style={{ 
+                                padding: '12px 20px', 
+                                border: 'none', 
+                                cursor: 'pointer', 
+                                color: 'white',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                transition: 'all 0.3s ease'
+                            }}
+                        >
+                            <MapPin size={20} color="var(--primary)" />
+                            <span style={{ fontWeight: '600' }}>門市定位</span>
+                        </button>
+                    </div>
             </header>
 
             {/* Category Tabs */}
