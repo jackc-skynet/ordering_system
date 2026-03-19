@@ -293,6 +293,7 @@ function App() {
         const currentOrder = activeOrders.find(o => o.id === viewingOrderId) || activeOrders[0];
         
         return <OrderTrackingView 
+            key={currentOrder.id}
             order={currentOrder} 
             activeOrders={activeOrders}
             onSwitchOrder={(id) => setViewingOrderId(id)}
