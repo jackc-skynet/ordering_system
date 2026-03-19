@@ -4,7 +4,7 @@ import { MENU_DATA, CATEGORIES } from './data/menu';
 import { supabase } from './lib/supabase';
 import IngredientBuilder from './IngredientBuilder';
 
-const OrderTrackingView = ({ order, onBackToMenu, onClearOrder }) => {
+const OrderTrackingView = ({ order, activeOrders, onSwitchOrder, onBackToMenu, onClearOrder }) => {
     // Safety check for order object
     if (!order || !order.id) {
         return (
@@ -103,12 +103,33 @@ const OrderTrackingView = ({ order, onBackToMenu, onClearOrder }) => {
                     </div>
                 )}
 
+                {activeOrders && activeOrders.length > 1 && (
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '2rem', overflowX: 'auto', padding: '0.5rem 0' }}>
+                        {activeOrders.map(o => (
+                            <button 
+                                key={o.id} 
+                                onClick={() => onSwitchOrder(o.id)}
+                                className="glass"
+                                style={{ 
+                                    padding: '0.5rem 1rem', 
+                                    fontSize: '0.8rem', 
+                                    whiteSpace: 'nowrap',
+                                    border: o.id === order.id ? '1px solid var(--primary)' : '1px solid var(--glass-border)',
+                                    color: o.id === order.id ? 'var(--primary)' : 'white'
+                                }}
+                            >
+                                #{o.displayId}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <button className="glass" style={{ flex: 1, justifyContent: 'center' }} onClick={onBackToMenu}>
                         先看菜單
                     </button>
                     {isCompleted && (
-                        <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={onClearOrder}>
+                        <button className="btn-primary" style={{ flex: 1, justifyContent: 'center' }} onClick={() => onClearOrder(order.id)}>
                             結束並清除
                         </button>
                     )}
@@ -118,38 +139,48 @@ const OrderTrackingView = ({ order, onBackToMenu, onClearOrder }) => {
     );
 };
 
-const FloatingStatusButton = ({ order, onClick }) => {
-    const [status, setStatus] = useState(order.initialStatus || 'pending');
+const FloatingStatusButton = ({ orders, onClick }) => {
+    // Collect all unique order IDs to listen to
+    const orderIds = orders.map(o => o.id);
+    const [statuses, setStatuses] = useState({}); // { orderId: status }
 
     useEffect(() => {
-        const channel = supabase
-            .channel(`order-status-fab-${order.id}`)
-            .on('postgres_changes', 
-                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` }, 
-                payload => {
-                    if (payload.new && payload.new.status) {
-                        setStatus(payload.new.status);
+        // Simple way: subscribe to all active orders
+        const channels = orders.map(order => {
+            return supabase
+                .channel(`status-fab-${order.id}`)
+                .on('postgres_changes', 
+                    { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` }, 
+                    payload => {
+                        if (payload.new && payload.new.status) {
+                            setStatuses(prev => ({ ...prev, [order.id]: payload.new.status }));
+                        }
                     }
-                }
-            )
-            .subscribe();
+                )
+                .subscribe();
+        });
 
         return () => {
-            supabase.removeChannel(channel);
+            channels.forEach(ch => supabase.removeChannel(ch));
         };
-    }, [order.id]);
+    }, [JSON.stringify(orderIds)]);
 
-    if (status === 'completed') return null;
+    // Determine aggregate status
+    const allStatuses = orders.map(o => statuses[o.id] || o.initialStatus || 'pending');
+    const hasReady = allStatuses.includes('ready');
+    const hasPreparing = allStatuses.includes('preparing');
+    const allCompleted = allStatuses.every(s => s === 'completed');
 
-    const getStatusInfo = () => {
-        switch (status) {
-            case 'preparing': return { color: '#f7b733', text: '製作中' };
-            case 'ready': return { color: '#4ade80', text: '請取餐！' };
-            default: return { color: '#ff6b35', text: '等候中' };
-        }
+    if (allCompleted && orders.length > 0) return null;
+
+    const getAggregatedInfo = () => {
+        if (hasReady) return { color: '#4ade80', text: '請取餐！', pulse: true };
+        if (hasPreparing) return { color: '#f7b733', text: '製作中', pulse: false };
+        return { color: '#ff6b35', text: '等候中', pulse: false };
     };
 
-    const info = getStatusInfo();
+    const info = getAggregatedInfo();
+    const count = orders.length;
 
     return (
         <button 
@@ -168,11 +199,13 @@ const FloatingStatusButton = ({ order, onClick }) => {
                 zIndex: 1000,
                 boxShadow: `0 4px 15px ${info.color}44`,
                 cursor: 'pointer',
-                animation: status === 'ready' ? 'pulse 2s infinite' : 'none'
+                animation: info.pulse ? 'pulse 2s infinite' : 'none'
             }}
         >
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: info.color }}></div>
-            <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{info.text} - {order.displayId}</span>
+            <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>
+                {count > 1 ? `${count} 份訂單 ${info.text}` : `${info.text} - ${orders[0].displayId}`}
+            </span>
             <ChevronRight size={16} />
         </button>
     );
@@ -181,8 +214,8 @@ const FloatingStatusButton = ({ order, onClick }) => {
 function App() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
-    const [orderResult, setOrderResult] = useState(null);
-    const [showTracking, setShowTracking] = useState(false);
+    const [activeOrders, setActiveOrders] = useState([]); // Array of { id, displayId, initialStatus }
+    const [viewingOrderId, setViewingOrderId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const EXTENDED_CATEGORIES = [...CATEGORIES, '創意料理'];
@@ -226,13 +259,15 @@ function App() {
 
             if (error) throw error;
 
-            setOrderResult({
+            const newOrder = {
                 success: true,
                 id: data.id,
                 displayId: (data.id || "").split('-')[0].toUpperCase(),
                 initialStatus: data.status || 'pending'
-            });
-            setShowTracking(true);
+            };
+            
+            setActiveOrders(prev => [...prev, newOrder]);
+            setViewingOrderId(data.id);
             setCart([]); // Clear the cart after successfully placing the order
         } catch (error) {
             console.error("Error creating order:", error);
@@ -243,18 +278,26 @@ function App() {
         }
     };
 
-    if (showTracking && orderResult?.success) {
+    if (viewingOrderId && activeOrders.length > 0) {
+        const currentOrder = activeOrders.find(o => o.id === viewingOrderId) || activeOrders[0];
+        
         return <OrderTrackingView 
-            order={orderResult} 
-            onBackToMenu={() => setShowTracking(false)} 
-            onClearOrder={() => { setCart([]); setOrderResult(null); setShowTracking(false); }}
+            order={currentOrder} 
+            activeOrders={activeOrders}
+            onSwitchOrder={(id) => setViewingOrderId(id)}
+            onBackToMenu={() => setViewingOrderId(null)} 
+            onClearOrder={(id) => { 
+                setActiveOrders(prev => prev.filter(o => o.id !== id));
+                setViewingOrderId(null);
+                if (activeOrders.length === 1) setCart([]); // Reset cart if last order cleared
+            }}
         />;
     }
 
     return (
         <div className="premium-container" style={{ position: 'relative' }}>
-            {orderResult && !showTracking && (
-                <FloatingStatusButton order={orderResult} onClick={() => setShowTracking(true)} />
+            {activeOrders.length > 0 && !viewingOrderId && (
+                <FloatingStatusButton orders={activeOrders} onClick={() => setViewingOrderId(activeOrders[activeOrders.length - 1].id)} />
             )}
             {/* Header */}
             <header style={{ marginBottom: '3rem' }}>
