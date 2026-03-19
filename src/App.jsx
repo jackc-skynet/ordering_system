@@ -16,26 +16,7 @@ const OrderTrackingView = ({ order, activeOrders, onSwitchOrder, onBackToMenu, o
         );
     }
 
-    const [status, setStatus] = useState(order.initialStatus || 'pending');
-
-    useEffect(() => {
-        const channel = supabase
-            .channel(`order-status-${order.id}`)
-            .on('postgres_changes', 
-                { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` }, 
-                payload => {
-                    if (payload.new && payload.new.status) {
-                        setStatus(payload.new.status);
-                    }
-                }
-            )
-            .subscribe();
-
-        return () => {
-            supabase.removeChannel(channel);
-        };
-    }, [order.id]);
-
+    const status = order.status || 'pending';
     const stages = [
         { id: 'pending', label: '收到訂單', icon: <Clock size={24} /> },
         { id: 'preparing', label: '製作中', icon: <ChefHat size={24} /> },
@@ -151,33 +132,8 @@ const OrderTrackingView = ({ order, activeOrders, onSwitchOrder, onBackToMenu, o
 };
 
 const FloatingStatusButton = ({ orders, onClick }) => {
-    // Collect all unique order IDs to listen to
-    const orderIds = orders.map(o => o.id);
-    const [statuses, setStatuses] = useState({}); // { orderId: status }
-
-    useEffect(() => {
-        // Simple way: subscribe to all active orders
-        const channels = orders.map(order => {
-            return supabase
-                .channel(`status-fab-${order.id}`)
-                .on('postgres_changes', 
-                    { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` }, 
-                    payload => {
-                        if (payload.new && payload.new.status) {
-                            setStatuses(prev => ({ ...prev, [order.id]: payload.new.status }));
-                        }
-                    }
-                )
-                .subscribe();
-        });
-
-        return () => {
-            channels.forEach(ch => supabase.removeChannel(ch));
-        };
-    }, [JSON.stringify(orderIds)]);
-
-    // Determine aggregate status
-    const allStatuses = orders.map(o => statuses[o.id] || o.initialStatus || 'pending');
+    // Determine aggregate status from the central state
+    const allStatuses = orders.map(o => o.status || 'pending');
     const hasReady = allStatuses.includes('ready');
     const hasPreparing = allStatuses.includes('preparing');
     const allCompleted = allStatuses.every(s => s === 'completed');
@@ -225,9 +181,34 @@ const FloatingStatusButton = ({ orders, onClick }) => {
 function App() {
     const [activeCategory, setActiveCategory] = useState('All');
     const [cart, setCart] = useState([]);
-    const [activeOrders, setActiveOrders] = useState([]); // Array of { id, displayId, initialStatus }
+    const [activeOrders, setActiveOrders] = useState([]); // Array of { id, displayId, status }
     const [viewingOrderId, setViewingOrderId] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+
+    // CENTRALIZED REAL-TIME LISTENER
+    useEffect(() => {
+        if (activeOrders.length === 0) return;
+
+        const channel = supabase
+            .channel('global-order-tracking')
+            .on('postgres_changes', 
+                { event: 'UPDATE', schema: 'public', table: 'orders' }, 
+                payload => {
+                    if (payload.new && payload.new.status) {
+                        setActiveOrders(prev => prev.map(order => 
+                            order.id === payload.new.id 
+                                ? { ...order, status: payload.new.status } 
+                                : order
+                        ));
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [activeOrders.length > 0]); // Re-subscribe when moving from 0 to >0 orders
 
     const EXTENDED_CATEGORIES = [...CATEGORIES, '創意料理'];
 
@@ -274,7 +255,7 @@ function App() {
                 success: true,
                 id: data.id,
                 displayId: (data.id || "").split('-')[0].toUpperCase(),
-                initialStatus: data.status || 'pending'
+                status: data.status || 'pending'
             };
             
             setActiveOrders(prev => [...prev, newOrder]);
