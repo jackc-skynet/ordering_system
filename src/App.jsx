@@ -233,6 +233,7 @@ function App() {
                 initialStatus: data.status || 'pending'
             });
             setShowTracking(true);
+            setCart([]); // Clear the cart after successfully placing the order
         } catch (error) {
             console.error("Error creating order:", error);
             // Show the exact error message from Supabase to help debugging
