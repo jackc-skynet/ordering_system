@@ -53,9 +53,7 @@ function App() {
 
             setOrderResult({
                 success: true,
-                id: data.id,
-                displayId: data.id.split('-')[0].toUpperCase(),
-                initialStatus: data.status
+                orderId: data.id.split('-')[0].toUpperCase() // Display a short 8-char ID
             });
         } catch (error) {
             console.error("Error creating order:", error);
@@ -66,95 +64,34 @@ function App() {
         }
     };
 
-    const OrderTrackingView = ({ order, onBackToMenu }) => {
-        const [status, setStatus] = useState(order.initialStatus || 'pending');
-
-        useEffect(() => {
-            const channel = supabase
-                .channel(`order-status-${order.id}`)
-                .on('postgres_changes', 
-                    { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${order.id}` }, 
-                    payload => {
-                        if (payload.new.status) {
-                            setStatus(payload.new.status);
-                        }
-                    }
-                )
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(channel);
-            };
-        }, [order.id]);
-
-        const stages = [
-            { id: 'pending', label: '收到訂單', icon: <Clock size={24} /> },
-            { id: 'preparing', label: '製作中', icon: <ChefHat size={24} /> },
-            { id: 'ready', label: '可取餐！', icon: <CheckCircle size={24} /> }
-        ];
-
-        const currentStageIndex = stages.findIndex(s => s.id === status);
-        const isCompleted = status === 'completed';
-
+    if (orderResult?.success) {
         return (
             <div className="premium-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
-                <div className="glass" style={{ padding: '3rem', maxWidth: '600px', width: '90%' }}>
-                    <div style={{ marginBottom: '1.5rem', color: isCompleted ? 'var(--text-secondary)' : 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
-                        {isCompleted ? <CheckCircle size={80} /> : <Clock size={80} className={status === 'preparing' ? 'spin' : ''} />}
+                <div className="glass" style={{ padding: '3rem', maxWidth: '500px' }}>
+                    <div style={{ marginBottom: '1.5rem', color: 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
+                        <CheckCircle size={80} />
                     </div>
-                    
-                    <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-                        {isCompleted ? '餐點已領取' : '主持正在為您服務'}
-                    </h2>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
-                        取餐號碼：<span style={{ color: 'var(--primary)', fontWeight: 'bold', fontFamily: 'monospace' }}>{order.displayId}</span>
-                    </p>
-
-                    {!isCompleted && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '3rem', position: 'relative' }}>
-                            <div style={{ position: 'absolute', top: '12px', left: '10%', right: '10%', height: '2px', background: 'var(--glass-border)', zIndex: 0 }}></div>
-                            <div style={{ position: 'absolute', top: '12px', left: '10%', width: `${currentStageIndex * 40}%`, height: '2px', background: 'var(--primary)', zIndex: 0, transition: 'width 0.5s ease' }}></div>
-                            
-                            {stages.map((stage, index) => {
-                                const isActive = index <= currentStageIndex;
-                                const isCurrent = index === currentStageIndex;
-                                return (
-                                    <div key={stage.id} style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
-                                        <div style={{ 
-                                            width: '24px', 
-                                            height: '24px', 
-                                            borderRadius: '50%', 
-                                            background: isCurrent ? 'var(--primary)' : (isActive ? 'var(--primary)' : 'var(--glass)'),
-                                            border: `2px solid ${isActive ? 'var(--primary)' : 'var(--glass-border)'}`,
-                                            boxShadow: isCurrent ? '0 0 15px var(--primary)' : 'none',
-                                            transition: 'all 0.3s'
-                                        }}></div>
-                                        <span style={{ fontSize: '0.8rem', color: isActive ? 'white' : 'var(--text-secondary)', fontWeight: isCurrent ? 'bold' : 'normal' }}>
-                                            {stage.label}
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    {status === 'ready' && (
-                        <div className="glass" style={{ padding: '1rem', marginBottom: '2rem', backgroundColor: 'rgba(74, 222, 128, 0.1)', border: '1px solid #4ade80' }}>
-                            <h3 style={{ color: '#4ade80', marginBottom: '0.5rem' }}>🎉 餐點好囉！</h3>
-                            <p style={{ fontSize: '0.9rem' }}>請前往櫃檯並出示號碼 「{order.displayId}」 領取您的美味餐點。</p>
-                        </div>
-                    )}
-
-                    <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={onBackToMenu}>
-                        {isCompleted ? '回到首頁' : '返回菜單 (不影響訂單狀態)'}
+                    <h2 style={{ fontSize: '2rem', marginBottom: '1rem' }}>點單成功送出！</h2>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem' }}>請前往櫃檯使用「現金結帳」並告知您的取餐號碼：</p>
+                    <div style={{
+                        fontSize: '3rem',
+                        fontWeight: '700',
+                        fontFamily: 'monospace',
+                        color: 'var(--primary)',
+                        backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                        padding: '1rem',
+                        borderRadius: '12px',
+                        marginBottom: '2rem',
+                        letterSpacing: '4px'
+                    }}>
+                        {orderResult.orderId}
+                    </div>
+                    <button className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => { setCart([]); setOrderResult(null); }}>
+                        回到菜單，繼續點餐
                     </button>
                 </div>
             </div>
         );
-    };
-
-    if (orderResult?.success) {
-        return <OrderTrackingView order={orderResult} onBackToMenu={() => { setCart([]); setOrderResult(null); }} />;
     }
 
     return (
