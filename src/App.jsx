@@ -49,11 +49,22 @@ const OrderTrackingView = ({ order, activeOrders, onSwitchOrder, onBackToMenu, o
         <div className="premium-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
             <div className="glass" style={{ padding: '3rem', maxWidth: '600px', width: '90%', margin: '0 auto' }}>
                 <div style={{ marginBottom: '1.5rem', color: isCompleted ? '#4ade80' : 'var(--primary)', display: 'flex', justifyContent: 'center' }}>
-                    {isCompleted ? <CheckCircle size={80} /> : <Clock size={80} className={status === 'preparing' ? 'spin' : ''} />}
+                    {isCompleted ? (
+                        <CheckCircle size={80} />
+                    ) : status === 'ready' ? (
+                        <Utensils size={80} />
+                    ) : status === 'preparing' ? (
+                        <ChefHat size={80} className="pulse" />
+                    ) : (
+                        <Clock size={80} />
+                    )}
                 </div>
                 
                 <h2 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-                    {isCompleted ? '餐點已領取！感謝光臨' : '主廚正在為您服務'}
+                    {isCompleted ? '餐點已領取！感謝光臨' : 
+                     status === 'ready' ? '餐點好囉！請前往取餐' :
+                     status === 'preparing' ? '主廚正全力製作中...' : 
+                     '收到訂單，請稍候'}
                 </h2>
                 <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>
                     取餐號碼：<span style={{ color: 'var(--primary)', fontWeight: 'bold', fontFamily: 'monospace' }}>{order.displayId}</span>
@@ -66,7 +77,7 @@ const OrderTrackingView = ({ order, activeOrders, onSwitchOrder, onBackToMenu, o
                             position: 'absolute', 
                             top: '12px', 
                             left: '10%', 
-                            width: currentStageIndex >= 0 ? `${currentStageIndex * 40}%` : '0%', 
+                            width: currentStageIndex >= 0 ? `${currentStageIndex * 50}%` : '0%', 
                             height: '2px', 
                             background: 'var(--primary)', 
                             zIndex: 0, 
